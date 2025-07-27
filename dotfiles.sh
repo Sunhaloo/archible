@@ -126,9 +126,7 @@ if [[ "$clone_status" -eq 0 ]]; then
     printf "== Moving Configuration Folders and Files! ==\n\n"
 
     # move the required configuration files
-    # WARNING: testing
-    # cp -r $HOME/GitHub/dotfiles/{hypr,kanata,kitty,nvim,rofi,starship,tmux,waybar} ~/.config
-    cp -r $HOME/GitHub/dotfiles/{hypr,kanata,kitty,rofi,scripts,starship,swaync,tmux,waybar} ~/.config
+    cp -r $HOME/GitHub/dotfiles/{hypr,kanata,kitty,nvim,rofi,scripts,starship,swaync,tmux,waybar} ~/.config
 
     printf "== Configuration Folders and Files Successfully Moved!!! ==\n\n"
 
