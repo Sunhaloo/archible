@@ -17,7 +17,7 @@ ChatGPT simply wrote a function that could take $x$ number of arguments (i.e., t
 
 The install script was a single file that was over 920 lines of code.
 
-> [!SUCCESS] The Revelation
+> [!TIP] The Revelation
 > The "_revelation_" came when this [video](https://www.youtube.com/watch?v=62mygqukbYk) by Typecraft appeared in my YouTube feed.
 >
 > This is when I realized that things shouldn't have been that complicated, and I had the eureka moment of "_I need to use arrays!_"
@@ -50,7 +50,7 @@ git clone https://github.com/Sunhaloo/archible.git
 cd archible && ./main.sh
 ```
 
-> [!SUCCESS]
+> [!IMPORTANT]
 > You should now see the script running!
 >
 > Go ahead and follow the prompts so that all the packages and configurations can be installed.
@@ -61,10 +61,10 @@ cd archible && ./main.sh
 > But we do **not** have Hyprland set up yet, as we still need to reboot the computer!
 >
 > > Therefore, after rebooting, if you want to quickly set up and generate an SSH key for GitHub... you'll have to run the install script **again**!
+
+> [!TIP] Possible Solution
+> If you have another laptop with you, before you start running 'archible', try to [SSH](https://en.wikipedia.org/wiki/Secure_Shell) into the computer with another device so that you can "_remotely_" run the install script.
 >
-> > [!TIP] Possible Solution
-> > If you have another laptop with you, before you start running 'archible', try to [SSH](https://en.wikipedia.org/wiki/Secure_Shell) into the computer with another device so that you can "_remotely_" run the install script.
-> >
-> > This way, you can agree to the Git/GitHub configuration prompt (hopefully the other device has a desktop environment)!
-> >
-> > You'll just need to open up [Github][https://github.com/] and simply paste that SSH key there. When you reboot, you should be ready to use "_my_" computer!
+> This way, you can agree to the Git/GitHub configuration prompt (hopefully the other device has a desktop environment)!
+>
+> You'll just need to open up [Github][https://github.com/] and simply paste that SSH key there. When you reboot, you should be ready to use "_my_" computer!
