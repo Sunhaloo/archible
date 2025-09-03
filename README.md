@@ -4,24 +4,25 @@
 
 A simple personal install script for my Arch Linux PCs and laptops, created for whenever my OCD of reinstalling Arch every 6 months kicks in.
 
-> [!INFO] Back Story
-> When I switched to Arch from Pop!_OS, I heard a lot of people saying "\_Yeah, Arch is really unstable!_"
+## Back Story
+
+When I switched to Arch from Pop!_OS, I heard a lot of people saying "\_Yeah, Arch is really unstable!_"
+
+At that time, with my limited knowledge (I was still trying to figure things out), I asked [ChatGPT](https://chat.openai.com) to basically write an install script.
+
+> It was the worst thing ever!
+
+It was not optimized... What I'm trying to say is that I **lacked** the fundamental knowledge of Bash. Hence, I didn't even think of or consider using arrays to store packages, for example.
+ChatGPT simply wrote a function that could take $x$ number of arguments (i.e., the package names) and then install them.
+
+The install script was a single file that was over 920 lines of code.
+
+> [!SUCCESS] The Revelation
+> The "_revelation_" came when this [video](https://www.youtube.com/watch?v=62mygqukbYk) by Typecraft appeared in my YouTube feed.
 >
-> At that time, with my limited knowledge (I was still trying to figure things out), I asked [ChatGPT](https://chat.openai.com) to basically write an install script.
+> This is when I realized that things shouldn't have been that complicated, and I had the eureka moment of "_I need to use arrays!_"
 >
-> > It was the worst thing ever!
->
-> It was not optimized... What I'm trying to say is that I **lacked** the fundamental knowledge of Bash. Hence, I didn't even think of or consider using arrays to store packages, for example.
-> ChatGPT simply wrote a function that could take $x$ number of arguments (i.e., the package names) and then install them.
->
-> The install script was a single file that was over 920 lines of code.
->
-> > [!SUCCESS] The Revelation
-> > The "_revelation_" came when this [video](https://www.youtube.com/watch?v=62mygqukbYk) by Typecraft appeared in my YouTube feed.
-> >
-> > This is when I realized that things shouldn't have been that complicated, and I had the eureka moment of "_I need to use arrays!_"
-> >
-> > Therefore, I actually went over Bash's basics again and here I am with my version of his install script!
+> Therefore, I actually went over Bash's basics again and here I am with my version of his install script!
 
 ---
 
@@ -67,4 +68,3 @@ cd archible && ./main.sh
 > > This way, you can agree to the Git/GitHub configuration prompt (hopefully the other device has a desktop environment)!
 > >
 > > You'll just need to open up [Github][https://github.com/] and simply paste that SSH key there. When you reboot, you should be ready to use "_my_" computer!
-
