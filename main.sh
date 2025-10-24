@@ -8,10 +8,10 @@ source packages.conf
 print_logo
 
 # call the function to install `yay` ( if need be )
-yay_installation 
+yay_installation
 
 # refresh packages and update the whole system
-update_system 
+update_system
 
 # install all the dependency packages
 install_packages "${DEPENDENCIES[@]}"
@@ -42,12 +42,13 @@ enable_services "${SERVICES[@]}"
 
 # import / source the proper file to be able to move configuration files and folders
 if ! source dotfiles.sh; then
-    printf "\nConfiguration SH was Skipped or Failed, continuing with the rest...\n"
+  # display the error message if the `source` command returned '1'
+  printf "\nConfiguration SH was Skipped or Failed, continuing with the rest...\n"
 fi
 
 # call the function to "manually" install OMZ
 oh_my_zsh_manual
- 
+
 # call the function to install TPM
 tmux_plugin_manager
 
@@ -56,7 +57,8 @@ kanata_configuration
 
 # import / source the proper file to configure git and setup SSH key
 if ! git_configuration; then
-    printf "\nGit Configuration was Skipped or Failed, continuing with the rest...\n"
+  # display the error message if the `source` command returned '1'
+  printf "\nGit Configuration was Skipped or Failed, continuing with the rest...\n"
 fi
 
 # call the function to check if the user wants to reboot the system
