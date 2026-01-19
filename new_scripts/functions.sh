@@ -50,6 +50,21 @@ logo() {
 EOF
 }
 
+# main menu shown at the start and end of each "job"
+display_menu() {
+  logo
+
+  echo
+
+  printf "\n          == Main Menu ==\n\n"
+  printf "      [1] Base System Install\n"
+  printf "      [2] Laptop Specific Packages Install\n"
+  printf "      [3] Enable Services\n"
+  printf "      [4] Kanata Keyboard Remapper\n"
+  printf "      [5] Exit ( Reboot )\n\n"
+  printf "      Enter your choice: "
+}
+
 # check if package is already installed
 is_installed() {
   pacman -Q "$1" &>/dev/null
@@ -96,3 +111,25 @@ update_system() {
 
   clear
 }
+
+# install packages on the system through ( both ) pacman and AUR
+install_packages() {
+  local packages=("$@")
+  not_on_sys=()
+
+  for pkgs in "${packages[@]}"; do
+    if ! is_installed "$pkgs" && ! is_group_installed "$pkgs"; then
+      not_on_sys+=("$pkgs")
+    fi
+  done
+
+  if [[ "${#not_on_sys[@]}" -ne 0 ]]; then
+    run_command "Installing Packages" yay -S --noconfirm "${not_on_sys[@]}"
+  fi
+
+  clear
+}
+
+# install laptop specific packages
+
+display_menu
