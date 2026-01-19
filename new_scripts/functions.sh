@@ -30,7 +30,6 @@ run_command() {
     echo "Error: $description failed (exit code: $exit_code)" >&2
 
     return $exit_code
-
   fi
 }
 
@@ -46,23 +45,7 @@ logo() {
  /_/   \_\_|  \___|_| |_|_|_.__/|_|\___|
 
               "Less is More"
-
 EOF
-}
-
-# main menu shown at the start and end of each "job"
-display_menu() {
-  logo
-
-  echo
-
-  printf "\n          == Main Menu ==\n\n"
-  printf "      [1] Base System Install\n"
-  printf "      [2] Laptop Specific Packages Install\n"
-  printf "      [3] Enable Services\n"
-  printf "      [4] Kanata Keyboard Remapper\n"
-  printf "      [5] Exit ( Reboot )\n\n"
-  printf "      Enter your choice: "
 }
 
 # check if package is already installed
@@ -108,8 +91,6 @@ update_system() {
   # update all packages found on the system
   run_command "Refreshing Pacman Packages" sudo pacman -Syu --noconfirm
   run_command "Refreshing AUR Packages" yay -Syu --noconfirm
-
-  clear
 }
 
 # install packages on the system through ( both ) pacman and AUR
@@ -118,18 +99,59 @@ install_packages() {
   not_on_sys=()
 
   for pkgs in "${packages[@]}"; do
+    # populate the packages that are not installed on the system
     if ! is_installed "$pkgs" && ! is_group_installed "$pkgs"; then
       not_on_sys+=("$pkgs")
     fi
   done
 
   if [[ "${#not_on_sys[@]}" -ne 0 ]]; then
+    # actually use install the packages using `yay`
     run_command "Installing Packages" yay -S --noconfirm "${not_on_sys[@]}"
   fi
-
-  clear
 }
 
 # install laptop specific packages
+install_laptop_packages() {
+  printf "\n== Laptop Specific Packages!!! ==\n\n"
 
-display_menu
+  read -p "Are you on laptop [y/N]: " laptop_user
+
+  if [[ "$laptop_user" == "y" ]]; then
+    printf "\n-- Installing Laptop Specific Packages!!! --\n"
+
+    local laptop_packages=("$@")
+
+    # use the pre-existing `install_packages` function to install laptop specific packages
+    if ! install_packages "${laptop_packages[@]}"; then
+      printf "\n== Failed to installed Laptop specific packages!!! ==\n"
+
+    fi
+
+  elif [[ "$laptop_user" == "N" || "$laptop_user" == "" ]]; then
+    printf "\n-- Skipping Laptop Packages! --\n"
+
+  else
+    printf "\n== Wrong input... Skipping laptop packages!!! ==\n"
+  fi
+}
+
+# enabled all the required services
+enable_services() {
+  local services=("$@")
+
+  for service in "${services[@]}"; do
+    if ! systemctl is-enabled "$service" &>/dev/null; then
+      # enable all th services found inside the "services" array
+      run_command "Enabling service: $service" sudo systemctl enable "$service"
+
+    else
+      printf "\n -- $service is already enabled --\n"
+
+    fi
+  done
+}
+
+# tmux plugin manager installation
+tmux_plugin_manager() {
+}
