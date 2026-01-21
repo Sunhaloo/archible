@@ -154,4 +154,99 @@ enable_services() {
 
 # tmux plugin manager installation
 tmux_plugin_manager() {
+  printf "== TMUX Plugin Manager ==\n"
+
+  if [[ -d "$HOME/.tmux" || -d "$HOME/.config/tmux/plugins/tpm" ]]; then
+    printf "\n-- TMUX Plugin Manager Folder Exists! --\n\n"
+
+  else
+    run_command "Installing TPM" git clone https://github.com/tmux-plugins/tpm ~/.config/tmux/plugins/tpm
+
+    printf "-- TMUX Plugin Manager Installed --\n"
+  fi
+}
+
+# git configuration and SSH setup
+git_configuration_setup() {
+  # INFO: Link to Documentation:
+  # https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent?platform=linux
+
+  read -p "Are You On Hyprland? Do You Have A Browser? [y/N]: " user_desktop
+
+  if [[ "$user_desktop" == "y" ]]; then
+    printf "\n== Git Configuration and Setup! ==\n\n"
+
+    read -p "Enter Your Email ( Attached To GitHub ): " git_email
+    read -p "Confirm Your Email: " git_email_confirmation
+
+    # check if the email actually matches
+    if [[ "$git_email" == "$git_email_confirmation" ]]; then
+      printf "\n-- Email Confirmed! --\n\n"
+
+    else
+      printf "\n-- Emails Did NOT Match Up!!! --\n"
+
+      return 1
+    fi
+
+    read -p "Please Enter Your Username ( Attached To GitHub ): " git_username
+
+    printf "\n-- Setting Up User Specific Configurations --\n\n"
+
+    # git configuration using user's data
+    git config set --global user.email "$git_email"
+    git config set --global user.name "$git_username"
+    git config set --global init.defaultBranch main
+
+    printf "\n-- Setting Up User Configurations Completed --\n\n"
+
+    # list the configuration applied
+    git config list | head
+
+    printf "\n== SSH Key Setup for Git - GitHub == \n\n"
+
+    # following the documentation
+    ssh-keygen -t ed25519 -C "$git_email"
+    eval "$(ssh-agent -s)"
+    ssh-add ~/.ssh/id_ed25519
+
+    printf "\n-- SSH Key ( Already Copied To Clipboard ) --\n\n"
+
+    # display the SSH key and also copy to the clipboard
+    cat ~/.ssh/id_ed25519.pub && cat ~/.ssh/id_ed25519.pub | wl-copy
+
+  elif [[ "$user_desktop" == "N" || "$user_desktop" == "" ]]; then
+    printf "\n== Skipping Git Configurations!!! ==\n"
+
+  else
+    printf "\n== Wrong Input... Skipping Laptop Packages!!! ==\n"
+
+  fi
+}
+
+# reboot the computer ( as need be )
+reboot_computer() {
+  read -p "Do You Want To Reboot The System [Y/n]: " user_reboot
+
+  if [[ "$user_reboot" == "Y" || "$user_reboot" == "" ]]; then
+    printf "\n== Rebooting System... ==\n"
+
+    sleep 0.5s
+
+    logo
+
+    # reboot the system
+    systemctl reboot
+
+  elif [[ "$user_reboot" == "n" ]]; then
+    printf "\n== Installation and Setup Complete! ==\n\n"
+
+    logo
+
+    exit 0
+
+  else
+    printf "\n== Wrong Input... Skipping Rebooting!!! ==\n"
+
+  fi
 }
