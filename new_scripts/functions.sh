@@ -66,31 +66,27 @@ yay_installation() {
     printf "\n-- YAY has already been installed! --\n"
 
   else
-    cd $HOME
+    cd "$HOME"
     printf "\n-- Installing YAY AUR Helper --\n"
 
     # install yay's dependencies
-    run_command "Installing YAY Dependencies" sudo pacman -S --needed git base-devel
+    run_command "Installing YAY Dependencies" sudo pacman -S --needed --noconfirm git base-devel
 
     # clone the actual git repository
     run_command "Clone YAY Git Repository" git clone https://aur.archlinux.org/yay.git
 
     # install yay locally on system
-    cd yay
+    run_command "Changing Directory to 'yay'" cd yay
     run_command "Installing YAY" makepkg -si
-    cd .. && rm -rf yay
+    run_command "Changing Directory Back" cd ..
+    run_command "Delete Residual 'yay' Directory" rm -rf yay
   fi
 }
 
 # update the system
 update_system() {
-  # refresh pacman and AUR packages
-  run_command "Refreshing Pacman Packages" sudo pacman -Syy --noconfirm
-  run_command "Refreshing AUR Packages" yay -Syy --noconfirm
-
-  # update all packages found on the system
-  run_command "Refreshing Pacman Packages" sudo pacman -Syu --noconfirm
-  run_command "Refreshing AUR Packages" yay -Syu --noconfirm
+  # force refresh and update all the packages found in the system
+  run_command "Refreshing AUR Packages + Updating Packges ( Pacman + AUR )" yay -Syyu --noconfirm
 }
 
 # install packages on the system through ( both ) pacman and AUR
@@ -124,7 +120,9 @@ install_laptop_packages() {
 
     # use the pre-existing `install_packages` function to install laptop specific packages
     if ! install_packages "${laptop_packages[@]}"; then
-      printf "\n== Failed to installed Laptop specific packages!!! ==\n"
+      printf "\n== Failed to install Laptop specific packages!!! ==\n"
+
+      return 1
 
     fi
 
@@ -133,6 +131,8 @@ install_laptop_packages() {
 
   else
     printf "\n== Wrong input... Skipping laptop packages!!! ==\n"
+
+    return 1
   fi
 }
 
@@ -142,11 +142,11 @@ enable_services() {
 
   for service in "${services[@]}"; do
     if ! systemctl is-enabled "$service" &>/dev/null; then
-      # enable all th services found inside the "services" array
+      # enable all the services found inside the "services" array
       run_command "Enabling service: $service" sudo systemctl enable "$service"
 
     else
-      printf "\n -- $service is already enabled --\n"
+      printf "\n-- $service is already enabled --\n"
 
     fi
   done
@@ -162,7 +162,7 @@ tmux_plugin_manager() {
   else
     run_command "Installing TPM" git clone https://github.com/tmux-plugins/tpm ~/.config/tmux/plugins/tpm
 
-    printf "-- TMUX Plugin Manager Installed --\n"
+    printf "\n-- TMUX Plugin Manager Installed --\n"
   fi
 }
 
@@ -194,32 +194,32 @@ git_configuration_setup() {
     printf "\n-- Setting Up User Specific Configurations --\n\n"
 
     # git configuration using user's data
-    git config set --global user.email "$git_email"
-    git config set --global user.name "$git_username"
-    git config set --global init.defaultBranch main
+    run_command "Setting Git Email" git config set --global user.email "$git_email"
+    run_command "Setting Git Username" git config set --global user.name "$git_username"
+    run_command "Setting Git Default Branch" git config set --global init.defaultBranch main
 
     printf "\n-- Setting Up User Configurations Completed --\n\n"
 
     # list the configuration applied
-    git config list | head
+    run_command "Listing Git Configuration Changed" git config list | head
 
-    printf "\n== SSH Key Setup for Git - GitHub == \n\n"
+    printf "\n== SSH Key Setup for Git - GitHub ==\n\n"
 
     # following the documentation
-    ssh-keygen -t ed25519 -C "$git_email"
-    eval "$(ssh-agent -s)"
-    ssh-add ~/.ssh/id_ed25519
+    run_command "Generate SSH Key" ssh-keygen -t ed25519 -C "$git_email"
+    run_command "Construct SSH Command" eval "$(ssh-agent -s)"
+    run_command "Add SSH Key" ssh-add ~/.ssh/id_ed25519
 
     printf "\n-- SSH Key ( Already Copied To Clipboard ) --\n\n"
 
     # display the SSH key and also copy to the clipboard
-    cat ~/.ssh/id_ed25519.pub && cat ~/.ssh/id_ed25519.pub | wl-copy
+    run_command cat ~/.ssh/id_ed25519.pub && cat ~/.ssh/id_ed25519.pub | wl-copy
 
   elif [[ "$user_desktop" == "N" || "$user_desktop" == "" ]]; then
-    printf "\n== Skipping Git Configurations!!! ==\n"
+    printf "\n== Skipping Git Configuration!!! ==\n"
 
   else
-    printf "\n== Wrong Input... Skipping Laptop Packages!!! ==\n"
+    printf "\n== Wrong Input... Skipping Git Configuration and Setup!!! ==\n"
 
   fi
 }
