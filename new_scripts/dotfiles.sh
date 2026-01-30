@@ -5,8 +5,8 @@ source functions.sh
 
 REPO_URL="https://github.com/Sunhaloo/dotfiles.git"
 DIR_NAME="dotfiles"
-REPO_DIR="$HOME/GitHub/"
-CONFIG_DIR="$HOME/.config/"
+REPO_DIR="$HOME/GitHub"
+CONFIG_DIR="$HOME/.config"
 
 # initialize clone status
 clone_status=0
@@ -27,9 +27,9 @@ cd "$HOME" || exit 1
 printf "\n== Dotfiles Setup ==\n\n"
 
 # files and folders setup
-if [[ -d "$REPO_DIR$DIR_NAME" ]]; then
+if [[ -d "$REPO_DIR/$DIR_NAME" ]]; then
   printf "\n-- Dotfiles Repository Already Exists! --\n\n"
-  printf "\n-- Repository Located At: %s --\n\n" "$REPO_DIR$DIR_NAME"
+  printf "\n-- Repository Located At: %s --\n\n" "$REPO_DIR/$DIR_NAME"
   printf "\n== Checking Required Directories ==\n\n"
 
   ensure_config_dir
@@ -41,7 +41,7 @@ else
   mkdir -p "$REPO_DIR"
   ensure_config_dir
 
-  run_command "Cloning Dotfiles Repository" git clone "$REPO_URL" "$REPO_DIR$DIR_NAME"
+  run_command "Cloning Dotfiles Repository" git clone "$REPO_URL" "$REPO_DIR/$DIR_NAME"
   clone_status=$?
 
   echo
@@ -49,7 +49,7 @@ fi
 
 # check for cloning status
 if [[ "$clone_status" -eq 0 ]]; then
-  printf "\n-- Repository Located At: %s --\n\n" "$REPO_DIR$DIR_NAME"
+  printf "\n-- Repository Located At: %s --\n\n" "$REPO_DIR/$DIR_NAME"
   printf "\n== Moving Configurations ==\n\n"
   printf "\n-- Creating Home Folders --\n\n"
 
@@ -65,7 +65,7 @@ if [[ "$clone_status" -eq 0 ]]; then
   xdg-user-dirs-update
 
   # create all home directories
-  mkdir -p "${home_dirs[@]}" 2>/dev/null
+  mkdir -p "${home_dirs[@]}"
 
   printf "\n-- Home Folders Created --\n\n"
 
@@ -78,9 +78,8 @@ if [[ "$clone_status" -eq 0 ]]; then
     "kitty"
     "nvim"
     "rofi"
-    "scripts"
     "starship"
-    "swaync"
+    "dunst"
     "tmux"
     "waybar"
   )
@@ -88,8 +87,11 @@ if [[ "$clone_status" -eq 0 ]]; then
   # copy each config folder
   for folder in "${config_folders[@]}"; do
     if [[ -d "$HOME/GitHub/dotfiles/$folder" ]]; then
-      cp -r "$HOME/GitHub/dotfiles/$folder" "$HOME/.config/" &&
+      if cp -r "$HOME/GitHub/dotfiles/$folder" "$HOME/.config/"; then
         printf "-- Copied: %s --\n" "$folder"
+      else
+        printf "-- Failed to copy: %s --\n" "$folder" >&2
+      fi
     else
       printf "-- Missing: %s --\n" "$folder" >&2
     fi
@@ -101,25 +103,7 @@ else
   printf "\n== WARNING: Clone Failed ==\n" >&2
 
   # clean up only the dotfiles directory
-  rm -rf "$REPO_DIR$DIR_NAME"
-
-  printf "\nDo You Want To Delete The Configuration Folder '%s' [y/N]: " "$CONFIG_DIR"
-
-  read -r rm_config_dir
-
-  # use case statement for cleaner input handling
-  case "${rm_config_dir,,}" in
-  y | yes)
-    printf "\n== Deleting Configuration Folder ==\n"
-    rm -rf "$CONFIG_DIR"
-    ;;
-  n | no | "")
-    printf "\n== Skipping Deleting Configuration Folder ==\n"
-    ;;
-  *)
-    printf "\n== Invalid Input... Skipping Deletion ==\n" >&2
-    ;;
-  esac
+  rm -rf "$REPO_DIR/$DIR_NAME" 2>/dev/null
 
   exit 1
 fi

@@ -68,7 +68,7 @@ yay_installation() {
 
   run_command "Installing YAY Dependencies" sudo pacman -S --needed --noconfirm git base-devel || return 1
 
-  rm -rf "$yay_dir"
+  rm -rf "$yay_dir" 2>/dev/null
   run_command "Cloning YAY Repository" git clone https://aur.archlinux.org/yay.git "$yay_dir" || return 1
 
   cd "$yay_dir" || return 1
@@ -77,8 +77,8 @@ yay_installation() {
     return 1
   }
 
-  cd - >/dev/null
-  rm -rf "$yay_dir"
+  cd - >/dev/null || true
+  rm -rf "$yay_dir" 2>/dev/null
 
   printf "\n-- YAY installation complete --\n"
 }
@@ -148,6 +148,62 @@ enable_services() {
   done
 }
 
+# kanata keyboard remapper configuration
+kanata_configuration() {
+  printf "\n== Kanata Configuration ==\n\n"
+
+  read -p "Do You Want to Install and Configure Kanata [y/N]: " kanata_user
+
+  if [[ "$kanata_user" == "y" ]]; then
+    install_packages kanata
+
+    # following the official documentation ( for Linux )
+    run_command "Adding UINPUT group" sudo groupadd -f uinput
+    run_command "Adding user to input group" sudo usermod -aG input "$USER"
+    run_command "Adding user to uinput group" sudo usermod -aG uinput "$USER"
+
+    run_command "Copying udev rules" sudo cp ~/GitHub/dotfiles/kanata/99-input.rules /etc/udev/rules.d/
+
+    sudo udevadm control --reload-rules && sudo udevadm trigger
+
+    run_command "Loading UINPUT kernel module" sudo modprobe uinput
+
+    rm -f /usr/lib/systemd/system/kanata.service
+
+    mkdir -p ~/.config/systemd/user
+    mkdir -p ~/.config/kanata
+
+    run_command "Copying kanata service file" cp ~/GitHub/dotfiles/kanata/kanata.service ~/.config/systemd/user/
+    run_command "Copying kanata config file" cp ~/GitHub/dotfiles/kanata/config.kbd ~/.config/kanata/
+
+    run_command "Reloading systemd manager" systemctl --user daemon-reload
+
+    # ask the user if he wants to autostart kanata on boot
+    read -p "Do You Want To Autostart Kanata On Boot [y/N]: " user_enable
+
+    if [[ "$user_enable" == "y" ]]; then
+      run_command "Enabling Kanata on boot" systemctl --user enable kanata.service
+
+    elif [[ "$user_enable" == "N" || "$user_enable" == "" ]]; then
+      printf "\n-- Skipping Kanata autostart --\n"
+
+    else
+      printf "\n-- Invalid input. Skipping Kanata autostart --\n" >&2
+    fi
+
+    run_command "Starting Kanata service" systemctl --user start kanata.service
+    systemctl --user status kanata.service | head
+
+  # if the user does not want to install laptop packages
+  elif [[ "$kanata_user" == "N" || "$kanata_user" == "" ]]; then
+    printf "\n== Skipping Kanata Configuration!!! ==\n"
+
+  else
+    printf "\n== Wrong Input... Skipping Kanata!!! ==\n"
+
+  fi
+}
+
 # tmux plugin manager installation
 tmux_plugin_manager() {
   printf "\n== TMUX Plugin Manager ==\n"
@@ -160,6 +216,7 @@ tmux_plugin_manager() {
   fi
 
   run_command "Installing TPM" git clone https://github.com/tmux-plugins/tpm "$tpm_dir" || return 1
+
   printf "\n-- TPM installation complete --\n"
 }
 
@@ -192,9 +249,9 @@ git_configuration_setup() {
 
   printf "\n-- Configuring Git --\n"
 
-  git config --global user.email "$git_email"
-  git config --global user.name "$git_username"
-  git config --global init.defaultBranch main
+  run_command "Setting git email" git config --global user.email "$git_email"
+  run_command "Setting git username" git config --global user.name "$git_username"
+  run_command "Setting default branch" git config --global init.defaultBranch main
 
   printf "\n-- Current Git Configuration --\n"
   git config --global --list | grep -E "(user|init)"
@@ -208,8 +265,8 @@ git_configuration_setup() {
     read -r -p "Generate new key? (will backup old key) [y/N]: " regenerate
 
     if [[ "${regenerate,,}" =~ ^y(es)?$ ]]; then
-      mv "$ssh_key" "${ssh_key}.backup.$(date +%s)"
-      mv "${ssh_key}.pub" "${ssh_key}.pub.backup.$(date +%s)"
+      run_command "Backing up existing SSH key" mv "$ssh_key" "${ssh_key}.backup.$(date +%s)"
+      run_command "Backing up existing SSH public key" mv "${ssh_key}.pub" "${ssh_key}.pub.backup.$(date +%s)"
     else
       printf "\n-- Using existing SSH key --\n"
       cat "${ssh_key}.pub"
@@ -224,10 +281,10 @@ git_configuration_setup() {
     fi
   fi
 
-  ssh-keygen -t ed25519 -C "$git_email" -f "$ssh_key" -N "" || return 1
+  run_command "Generating SSH key" ssh-keygen -t ed25519 -C "$git_email" -f "$ssh_key" -N "" || return 1
 
   eval "$(ssh-agent -s)"
-  ssh-add "$ssh_key"
+  run_command "Adding SSH key to agent" ssh-add "$ssh_key"
 
   printf "\n-- SSH Public Key --\n"
   cat "${ssh_key}.pub"
@@ -242,9 +299,27 @@ git_configuration_setup() {
   printf "\n-- Add this key to GitHub: https://github.com/settings/keys --\n"
 }
 
+# change default shell to zsh
+change_shell_to_zsh() {
+  if [[ "$SHELL" == "$(command -v zsh)" ]]; then
+    printf "\n-- Shell is already set to zsh --\n"
+    return 0
+  fi
+
+  if ! command -v zsh &>/dev/null; then
+    printf "\n-- ERROR: zsh is not installed --\n" >&2
+    return 1
+  fi
+
+  run_command "Changing default shell to zsh" chsh -s "$(command -v zsh)" "$USER"
+}
+
 # reboot the computer
 reboot_computer() {
   printf "\n== Installation Complete ==\n"
+
+  # change shell to zsh before reboot
+  change_shell_to_zsh
 
   read -r -p "Reboot the system now? [Y/n]: " user_reboot
 
