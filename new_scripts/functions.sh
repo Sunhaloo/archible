@@ -109,9 +109,9 @@ install_packages() {
 
 # install laptop specific packages
 install_laptop_packages() {
-  printf "\n== Laptop Specific Packages ==\n"
+  printf "\n== ( Old ) Laptop Specific Packages ==\n"
 
-  read -r -p "Are you on a laptop? [y/N]: " laptop_user
+  read -r -p "Are you on a OLD laptop? [y/N]: " laptop_user
 
   case "${laptop_user,,}" in
   y | yes)
