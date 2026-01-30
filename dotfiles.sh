@@ -73,13 +73,14 @@ if [[ "$clone_status" -eq 0 ]]; then
 
   # define config folders to copy from dotfiles
   config_folders=(
+    "dunst"
     "hypr"
     "kanata"
     "kitty"
+    "niri"
     "nvim"
     "rofi"
     "starship"
-    "dunst"
     "tmux"
     "waybar"
   )
