@@ -1,436 +1,342 @@
 #!/usr/bin/env bash
 
-# function that will print out the welcome logo
-print_logo() {
-  # clear the screen before we commence / finish
-  clear
+# internet connection checker
+check_internet_connection() {
+  printf "\n== Checking Internet Connection ==\n"
 
+  if ping -c 1 -W 2 8.8.8.8 &>/dev/null || ping -c 1 -W 2 1.1.1.1 &>/dev/null; then
+    printf "\n-- Internet Connection Present --\n\n"
+    return 0
+  else
+    printf "\n-- No Internet Connection --\n" >&2
+    return 1
+  fi
+}
+
+# general wrapper - error checking function
+run_command() {
+  local description="$1"
+  shift
+
+  printf "\n-- %s --\n" "$description"
+
+  if "$@"; then
+    return 0
+  else
+    local exit_code=$?
+    printf "Error: %s failed (exit code: %s)\n" "$description" "$exit_code" >&2
+    return $exit_code
+  fi
+}
+
+# function to display welcome logo
+logo() {
+  echo
   cat <<"EOF"
-     _             _     _ _     _      
-    / \   _ __ ___| |__ (_) |__ | | ___ 
+     _             _     _ _     _
+    / \   _ __ ___| |__ (_) |__ | | ___
    / _ \ | '__/ __| '_ \| | '_ \| |/ _ \
   / ___ \| | | (__| | | | | |_) | |  __/
  /_/   \_\_|  \___|_| |_|_|_.__/|_|\___|
-                                        
 
-            "Less is More"
-
+              "Less is More"
 EOF
 }
 
-# function that will check if a package is already installed on system
+# check if package is already installed
 is_installed() {
   pacman -Q "$1" &>/dev/null
 }
 
-# function that will check if a groups of packages are already installed on system
+# check if package group is already installed
 is_group_installed() {
   pacman -Qg "$1" &>/dev/null
 }
 
-# function check if yay has already been installed on our system been installed
+# yay AUR installation
 yay_installation() {
+  printf "\n== YAY AUR Helper ==\n"
+
   if command -v yay &>/dev/null; then
-    # output appropriate message
-    printf "\n== YAY Has Already Been Installed! ==\n\n"
-
-  # meaning that `yay` has not been found on the system
-  else
-    # output appropriate message
-    printf "\n== YAY Has NOT Been Installed... Installing!!! ==\n\n"
-
-    # install the `yay` AUR helper as per the documentation
-    sudo pacman -S --needed git base-devel
-
-    printf "== Cloning Repository with Git!!! ==\n\n"
-
-    git clone https://aur.archlinux.org/yay.git
-
-    cd yay
-
-    printf "== Building YAY ==\n\n"
-
-    makepkg -si
-
-    printf "== Post Install Folder Clean =="
-
-    cd .. && rm -rf yay
+    printf "\n-- YAY is already installed --\n"
+    return 0
   fi
+
+  printf "\n-- Installing YAY AUR Helper --\n"
+
+  local yay_dir="/tmp/yay"
+
+  run_command "Installing YAY Dependencies" sudo pacman -S --needed --noconfirm git base-devel || return 1
+
+  rm -rf "$yay_dir" 2>/dev/null
+  run_command "Cloning YAY Repository" git clone https://aur.archlinux.org/yay.git "$yay_dir" || return 1
+
+  cd "$yay_dir" || return 1
+  run_command "Building and Installing YAY" makepkg -si --noconfirm || {
+    cd - >/dev/null
+    return 1
+  }
+
+  cd - >/dev/null || true
+  rm -rf "$yay_dir" 2>/dev/null
+
+  printf "\n-- YAY installation complete --\n"
 }
 
-# function that will refresh 'yay' and 'pacman' packages and update entire system
+# update the system
 update_system() {
-  # refresh the AUR and pacman packages
-  yay -Syy --noconfirm
-  sudo pacman -Syy --noconfirm
-
-  # actually update the system ( update packages downloaded with both `yay` and `pacman` )
-  yay -Syu --noconfirm
-  sudo pacman -Syu --noconfirm
-
-  # clear the whole screen after the update
-  clear
+  run_command "Syncing databases and upgrading packages" yay -Syyu --noconfirm
 }
 
-# function that will install all the packages that we tell it to... obviously!
+# install packages on the system through both pacman and AUR
 install_packages() {
-  # initialise variables
   local packages=("$@")
-  not_on_sys=()
+  local not_on_sys=()
 
-  # iterate through the list of packages provided by argument ( main program )
   for pkgs in "${packages[@]}"; do
-    # if the package inside the `packages` array is not found on system
     if ! is_installed "$pkgs" && ! is_group_installed "$pkgs"; then
-      # add that package to the array `not_on_sys`
       not_on_sys+=("$pkgs")
     fi
   done
 
-  # install all the packages that are found inside the `not_on_sys` array
-  if [[ "${#not_on_sys[@]}" -ne 0 ]]; then
-    yay -S --noconfirm "${not_on_sys[@]}"
+  if [[ "${#not_on_sys[@]}" -eq 0 ]]; then
+    printf "\n-- All packages already installed --\n"
+    return 0
   fi
 
-  # clear the screen after install package or a group of packages
-  clear
+  run_command "Installing ${#not_on_sys[@]} package(s)" yay -S --noconfirm "${not_on_sys[@]}"
 }
 
-# function that will allow us to configure kanata ( rust-based keyboard remapper )
+# install laptop specific packages
+install_laptop_packages() {
+  printf "\n== ( Old ) Laptop Specific Packages ==\n"
+
+  read -r -p "Are you on a OLD laptop? [y/N]: " laptop_user
+
+  case "${laptop_user,,}" in
+  y | yes)
+    printf "\n-- Installing Laptop Packages --\n"
+    local laptop_packages=("$@")
+
+    if ! install_packages "${laptop_packages[@]}"; then
+      printf "\n-- Failed to install laptop packages --\n" >&2
+      return 1
+    fi
+    ;;
+  n | no | "")
+    printf "\n-- Skipping Laptop Packages --\n"
+    ;;
+  *)
+    printf "\n-- Invalid input. Skipping laptop packages --\n" >&2
+    return 1
+    ;;
+  esac
+}
+
+# enable all the required services
+enable_services() {
+  local services=("$@")
+
+  printf "\n== Enabling Services ==\n"
+
+  for service in "${services[@]}"; do
+    if systemctl is-enabled "$service" &>/dev/null; then
+      printf "\n-- %s is already enabled --\n" "$service"
+    else
+      run_command "Enabling service: $service" sudo systemctl enable "$service"
+    fi
+  done
+}
+
+# kanata keyboard remapper configuration
 kanata_configuration() {
-  # INFO: Link to Documentation: https://github.com/jtroo/kanata/blob/main/docs/setup-linux.md
   printf "\n== Kanata Configuration ==\n\n"
 
-  # ask the user if he / she is on laptop
   read -p "Do You Want to Install and Configure Kanata [y/N]: " kanata_user
 
   if [[ "$kanata_user" == "y" ]]; then
-    # install the actual kanata packages
     install_packages kanata
 
     # following the official documentation ( for Linux )
-    sudo groupadd uinput
+    run_command "Adding UINPUT group" sudo groupadd -f uinput
+    run_command "Adding user to input group" sudo usermod -aG input "$USER"
+    run_command "Adding user to uinput group" sudo usermod -aG uinput "$USER"
 
-    sudo usermod -aG input $USER
-    sudo usermod -aG uinput $USER
-
-    # "create" the '99-input.rules' files... In this case, I already have it!
-    sudo cp ~/GitHub/dotfiles/kanata/99-input.rules /etc/udev/rules.d/
+    run_command "Copying udev rules" sudo cp ~/GitHub/dotfiles/kanata/99-input.rules /etc/udev/rules.d/
 
     sudo udevadm control --reload-rules && sudo udevadm trigger
 
-    # simply verification
-    ls -l /dev/uinput
+    run_command "Loading UINPUT kernel module" sudo modprobe uinput
 
-    sudo modprobe uinput
+    rm -f /usr/lib/systemd/system/kanata.service
 
-    sudo rm /usr/lib/systemd/system/kanata.service
-
-    printf "\n+     Moving Kanata Configuration     +\n\n"
-
-    # prepared the required directories for configuration files
     mkdir -p ~/.config/systemd/user
     mkdir -p ~/.config/kanata
 
-    # moving my configuration to `~/.config` directory
-    cp ~/GitHub/dotfiles/kanata/kanata.service ~/.config/systemd/user/
-    cp ~/GitHub/dotfiles/kanata/config.kbd ~/.config/kanata/
+    run_command "Copying kanata service file" cp ~/GitHub/dotfiles/kanata/kanata.service ~/.config/systemd/user/
+    run_command "Copying kanata config file" cp ~/GitHub/dotfiles/kanata/config.kbd ~/.config/kanata/
 
-    # reload the user systemd manager configuration
-    systemctl --user daemon-reload
+    run_command "Reloading systemd manager" systemctl --user daemon-reload
 
     # ask the user if he wants to autostart kanata on boot
     read -p "Do You Want To Autostart Kanata On Boot [y/N]: " user_enable
 
-    # if the user wants to enable kanata on boot
     if [[ "$user_enable" == "y" ]]; then
-      printf "\n== Enabling Kanata On Boot!!! ==\n"
+      run_command "Enabling Kanata on boot" systemctl --user enable kanata.service
 
-      # enable kanata on boot / when computer starts
-      systemctl --user enable kanata.service
-
-    # if the user does not want to enable kanata on boot
     elif [[ "$user_enable" == "N" || "$user_enable" == "" ]]; then
-      printf "\n== Skipping Kanata On Boot - Autostart!!! ==\n"
+      printf "\n-- Skipping Kanata autostart --\n"
 
-      # clear the screen if the user does not want to enable kanata
-      clear
-
-    # if the user did not enter correct / required input
     else
-      printf "\n== Wrong Input... Skipping Kanata Autostart!!! ==\n"
-
-      # clear the screen if the user did not enter something valid
-      clear
+      printf "\n-- Invalid input. Skipping Kanata autostart --\n" >&2
     fi
 
-    printf "== Starting Kanata's Service== \n"
-
-    # start kanata right away
-    systemctl --user start kanata.service
-    # check if kanata has been successfully started
+    run_command "Starting Kanata service" systemctl --user start kanata.service
     systemctl --user status kanata.service | head
 
   # if the user does not want to install laptop packages
   elif [[ "$kanata_user" == "N" || "$kanata_user" == "" ]]; then
     printf "\n== Skipping Kanata Configuration!!! ==\n"
 
-    # clear the screen if the user does not want to install kanata
-    clear
-
-  # if the user did not enter correct / required input
   else
     printf "\n== Wrong Input... Skipping Kanata!!! ==\n"
 
-    # clear the screen if the user did not enter something valid
-    clear
   fi
 }
 
-# function that will ask the user to if he is currently on laptop
-laptop_packages() {
-  printf "\n== Device Type - Laptop Specific Packages!!! ==\n\n"
+# tmux plugin manager installation
+tmux_plugin_manager() {
+  printf "\n== TMUX Plugin Manager ==\n"
 
-  # ask the user if he / she is on laptop
-  read -p "Are You On Laptop [y/N]: " laptop_user
+  local tpm_dir="$HOME/.config/tmux/plugins/tpm"
 
-  # if the user wants to download and install laptop packages
-  if [[ "$laptop_user" == "y" ]]; then
-    printf "\n== Installing Laptop Specific Packages!!! ==\n"
-
-    # initialise variable
-    local laptop_packages=("$@")
-
-    # call the required function to make 'yay' download and install required packages
-    install_packages "${laptop_packages[@]}"
-
-  # if the user does not want to install laptop packages
-  elif [[ "$laptop_user" == "N" || "$laptop_user" == "" ]]; then
-    printf "\n== Skipping Laptop Packages! ==\n"
-
-    # clear the screen if the user did not install and laptop packages
-    clear
-
-  # if the user did not enter correct / required input
-  else
-    printf "\n== Wrong Input... Skipping Laptop Packages!!! ==\n"
-
-    # clear the screen if the user did not enter the right "key"
-    clear
+  if [[ -d "$tpm_dir" ]]; then
+    printf "\n-- TPM is already installed --\n"
+    return 0
   fi
+
+  run_command "Installing TPM" git clone https://github.com/tmux-plugins/tpm "$tpm_dir" || return 1
+
+  printf "\n-- TPM installation complete --\n"
 }
 
-# function that will enable all the required services
-enable_services() {
-  # initialise variable
-  local services=("$@")
+# git configuration and SSH setup
+git_configuration_setup() {
+  printf "\n== Git Configuration and SSH Setup ==\n"
 
-  # iterate through the list of services provided by argument ( main program )
-  for service in "${services[@]}"; do
-    # use the actual `systemctl` with argument / flag `is-enabled` to check is service is enabled
-    if ! systemctl is-enabled "$service" &>/dev/null; then
-      echo "Enabling $service..."
+  read -r -p "Do you want to configure Git and SSH? [y/N]: " user_choice
 
-      # enable the service that is not already enabled
-      sudo systemctl enable "$service"
+  if [[ ! "${user_choice,,}" =~ ^y(es)?$ ]]; then
+    printf "\n-- Skipping Git configuration --\n"
+    return 0
+  fi
 
-    # meaning that the service has already been enabled
+  local git_email git_email_confirmation git_username
+
+  while true; do
+    read -r -p "Enter your GitHub email: " git_email
+    read -r -p "Confirm your email: " git_email_confirmation
+
+    if [[ "$git_email" == "$git_email_confirmation" ]]; then
+      printf "\n-- Email confirmed --\n"
+      break
     else
-      # output appropriate message
-      echo "$service is already enabled"
+      printf "\n-- Emails do not match. Try again --\n" >&2
     fi
   done
 
-  # clear the whole screen after enabling all the required services
-  clear
-}
+  read -r -p "Enter your GitHub username: " git_username
 
-# function to install curl and setup OMZ
-# BUG: this one is not reliable due to the fact that it enter 'ZSH' when it installs
-# therefore halting the execution of my script and hence fucking things up!
-oh_my_zsh() {
-  # INFO: Link to Documentation: https://github.com/ohmyzsh/ohmyzsh
-  printf "== Oh-My-ZSH Installation ==\n\n"
+  printf "\n-- Configuring Git --\n"
 
-  # following the installation guide for OMZ
-  sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended
+  run_command "Setting git email" git config --global user.email "$git_email"
+  run_command "Setting git username" git config --global user.name "$git_username"
+  run_command "Setting default branch" git config --global init.defaultBranch main
 
-  # WARNING: its going to throw you into ZSH...
-  # this means that you are going to have to type 'exit'
-  # so that this script can continue to run...
+  printf "\n-- Current Git Configuration --\n"
+  git config --global --list | grep -E "(user|init)"
 
-  printf "== Oh-My-ZSH Curl Completed ==\n\n"
+  printf "\n== SSH Key Setup ==\n"
 
-  # remove any exisiting ZSH related files
-  rm -rf ~/.zsh{rc.pre-oh-my-zsh,rc,_history}
+  local ssh_key="$HOME/.ssh/id_ed25519"
 
-  # move the `~/.oh-my-zsh/` to `~/.config/oh-my-zsh/`
-  mv -r ~/.oh-my-zsh/ ~/.config/oh-my-zsh/
+  if [[ -f "$ssh_key" ]]; then
+    printf "\n-- SSH key already exists --\n"
+    read -r -p "Generate new key? (will backup old key) [y/N]: " regenerate
 
-  # move my ZSH configuration file to be sourced
-  cp ~/GitHub/dotfiles/zsh/.zshrc $HOME
-  cp ~/GitHub/dotfiles/zsh/aliases.zsh ~/.config/oh-my-zsh/custom/
-
-  # move the plugins installed with `pacman` to `$ZSH/plugins/` folder
-  mv -r /usr/share/zsh/plugins/* ~/.config/oh-my-zsh/plugins/
-
-  printf "== Oh-My-ZSH and ZSH Setup Completed!!! ==\n\n"
-}
-
-# SUCCESS: this is the good one
-oh_my_zsh_manual() {
-  # INFO: Link to Documentation: https://github.com/ohmyzsh/ohmyzsh
-  printf "== Oh-My-ZSH Installation ==\n\n"
-
-  # NOTE: not following the official install step(s)
-  git clone https://github.com/ohmyzsh/ohmyzsh.git ~/.config/oh-my-zsh
-
-  printf "== Oh-My-ZSH Clone Completed ==\n\n"
-
-  # move my ZSH configuration file to be sourced
-  cp ~/GitHub/dotfiles/zsh/.zshrc $HOME
-  cp ~/GitHub/dotfiles/zsh/aliases.zsh ~/.config/oh-my-zsh/custom/
-
-  rm ~/.config/oh-my-zsh/custom/example.zsh
-
-  # move the plugins installed with `pacman` to `$ZSH/plugins/` folder
-  sudo mv /usr/share/zsh/plugins/* ~/.config/oh-my-zsh/plugins/
-
-  printf "== Oh-My-ZSH and ZSH Setup Completed!!! ==\n\n"
-
-  # clear the screen after setting up OMZ
-  clear
-}
-
-# function that will clone and setup TMUX TPM
-tmux_plugin_manager() {
-  printf "== TMUX Plugin Manager ==\n"
-
-  # if the directory at location '~/.tmux/' exists
-  if [[ -d "$HOME/.tmux" || -d "$HOME/.config/tmux/plugins/tpm" ]]; then
-    printf "\n== TMUX Plugin Manager Folder Exists! ==\n\n"
-
-  # meaning that TMUX Plugin Manager is not present on system
-  else
-    printf "\n== Cloning Repository with Git!!! ==\n\n"
-
-    git clone https://github.com/tmux-plugins/tpm ~/.config/tmux/plugins/tpm
-
-    printf "== TMUX Plugin Manager Installed ==\n"
-  fi
-
-  # clear the screen after installing TPM
-  clear
-}
-
-# function that will configure git and create SSH key for git
-git_configuration() {
-  # INFO: Link to Documentation:
-  # https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent?platform=linux
-
-  # prompt the user to confirm if they are currently
-  # on the desktop environment with a browser installed
-  read -p "Are You On Hyprland? Do You Have A Browser? [y/N]: " user_desktop
-
-  # meaning that the user wants configure git and setup SSH key
-  if [[ "$user_desktop" == "y" ]]; then
-    printf "\n== Configuring Git! ==\n\n"
-
-    # ask the user to enter his email
-    read -p "Enter Your Email ( Attached To GitHub ): " git_email
-    # ask the user to enter his email again for confirmation
-    read -p "Confirm Your Email: " git_email_confirmation
-
-    # if the user's email is the same
-    # ==> meaning original email == confirmation email
-    if [[ "$git_email" == "$git_email_confirmation" ]]; then
-      printf "\n== Email Confirmed ==\n\n"
-
-    # meaning that the original email is not the same as confirmation email
+    if [[ "${regenerate,,}" =~ ^y(es)?$ ]]; then
+      run_command "Backing up existing SSH key" mv "$ssh_key" "${ssh_key}.backup.$(date +%s)"
+      run_command "Backing up existing SSH public key" mv "${ssh_key}.pub" "${ssh_key}.pub.backup.$(date +%s)"
     else
-      printf "\n== Emails Did NOT Match Up!!! ==\n"
+      printf "\n-- Using existing SSH key --\n"
+      cat "${ssh_key}.pub"
 
-      # return the "error" status code to our main program
-      return 1
+      if command -v wl-copy &>/dev/null; then
+        cat "${ssh_key}.pub" | wl-copy
+        printf "\n-- SSH key copied to clipboard --\n"
+      fi
+
+      printf "\n-- Add this key to GitHub: https://github.com/settings/keys --\n"
+      return 0
     fi
-
-    # if emails have checked our... ask the user to enter his username
-    read -p "Please Enter Your Username ( Attached To GitHub ): " git_username
-
-    printf "\n== Setting Up User Specific Configurations ==\n\n"
-
-    # using information provided, setup git for user
-    git config set --global user.email "$git_email"
-    git config set --global user.name "$git_username"
-    git config set --global init.defaultBranch main
-
-    printf "\n== Setting Up User Configurations Completed ==\n\n"
-
-    # display the git configuration that has been applied
-    git config list | head
-
-    printf "\n== Setting Up SSH Key == \n\n"
-
-    # following the documentation
-    ssh-keygen -t ed25519 -C "$git_email"
-    eval "$(ssh-agent -s)"
-    ssh-add ~/.ssh/id_ed25519
-
-    printf "\n== SSH Key ( Already Copied To Clipboard ) == \n\n"
-
-    # display the SSH key and also copy to the clipboard
-    cat ~/.ssh/id_ed25519.pub && cat ~/.ssh/id_ed25519.pub | wl-copy
-
-  # meaning that the user does not want to configure git right now
-  elif [[ "$user_desktop" == "N" || "$user_desktop" == "" ]]; then
-    printf "\n== Skipping Git Configurations!!! ==\n"
-
-    # if the user did not want to setup `git` then clear the screen
-    clear
-
-  # if the user did not enter correct / required input
-  else
-    printf "\n== Wrong Input... Skipping Laptop Packages!!! ==\n"
-
-    # clear the screen if the user did not enter something valid
-    clear
   fi
+
+  run_command "Generating SSH key" ssh-keygen -t ed25519 -C "$git_email" -f "$ssh_key" -N "" || return 1
+
+  eval "$(ssh-agent -s)"
+  run_command "Adding SSH key to agent" ssh-add "$ssh_key"
+
+  printf "\n-- SSH Public Key --\n"
+  cat "${ssh_key}.pub"
+
+  if command -v wl-copy &>/dev/null; then
+    cat "${ssh_key}.pub" | wl-copy
+    printf "\n-- SSH key copied to clipboard --\n"
+  else
+    printf "\n-- wl-copy not found. Please copy the key manually --\n"
+  fi
+
+  printf "\n-- Add this key to GitHub: https://github.com/settings/keys --\n"
 }
 
-# function that can be used to reboot the machine of installation if need be
-reboot_computer() {
-  # ask the user if he / she wants to reboot the computer
-  read -p "Do You Want To Reboot The System [Y/n]: " user_reboot
-
-  # meaning that the user wants to reboot the computer
-  if [[ "$user_reboot" == "Y" || "$user_reboot" == "" ]]; then
-    printf "\n== Rebooting System... ==\n"
-
-    # sleep the program for '0.5s'
-    sleep 0.5s
-
-    # call the function to print the logo for one last time and off we go
-    print_logo
-
-    # reboot the computer using `systemctl`
-    systemctl reboot
-
-  # the user does not want to reboot
-  elif [[ "$user_reboot" == "n" ]]; then
-    # output appropriate message
-    printf "\n== Installation and Setup Complete! ==\n\n"
-
-    # call the function to print the logo for one last time and off we go
-    print_logo
-
-    # exit the program with correct status code
-    exit 0
-
-  # if the user did not enter correct / required input
-  else
-    printf "\n== Wrong Input... Skipping Rebooting!!! ==\n"
-
-    # clear the screen if the user did not enter something valid
-    clear
+# change default shell to zsh
+change_shell_to_zsh() {
+  if [[ "$SHELL" == "$(command -v zsh)" ]]; then
+    printf "\n-- Shell is already set to zsh --\n"
+    return 0
   fi
+
+  if ! command -v zsh &>/dev/null; then
+    printf "\n-- ERROR: zsh is not installed --\n" >&2
+    return 1
+  fi
+
+  run_command "Changing default shell to zsh" chsh -s "$(command -v zsh)" "$USER"
+}
+
+# reboot the computer
+reboot_computer() {
+  printf "\n== Installation Complete ==\n"
+
+  # change shell to zsh before reboot
+  change_shell_to_zsh
+
+  read -r -p "Reboot the system now? [Y/n]: " user_reboot
+
+  case "${user_reboot,,}" in
+  n | no)
+    printf "\n-- Setup complete. Reboot when ready --\n\n"
+    logo
+    exit 0
+    ;;
+  y | yes | "")
+    printf "\n-- Rebooting system --\n"
+    sleep 1
+    logo
+    sudo systemctl reboot
+    ;;
+  *)
+    printf "\n-- Invalid input. Skipping reboot --\n" >&2
+    ;;
+  esac
 }

@@ -1,65 +1,137 @@
 #!/usr/bin/env bash
 
-# import / source the proper file(s)
+# source required files
 source functions.sh
 source packages.conf
 
-# call the function to display the logo
-print_logo
+# ============================================================================
+# PRE-INSTALLATION CHECKS
+# ============================================================================
 
-# call the function to install `yay` ( if need be )
-yay_installation
+# display welcome logo
+logo
 
-# refresh packages and update the whole system
+# check internet connection
+if ! check_internet_connection; then
+  printf "\n-- ERROR: Internet connection required. Exiting... --\n" >&2
+  exit 1
+fi
+
+# ============================================================================
+# SYSTEM SETUP
+# ============================================================================
+
+# install yay aur helper
+yay_installation || exit 1
+
+# update system packages
 update_system
 
-# install all the dependency packages
+# ============================================================================
+# WINDOW MANAGER SELECTION
+# ============================================================================
+
+printf "\n== Window Manager Selection ==\n\n"
+printf "Which window manager would you like to install?\n"
+printf "  [1] Niri (default)\n"
+printf "  [2] Hyprland\n\n"
+read -r -p "Enter your choice [1/2]: " wm_choice
+
+# default to niri if empty
+wm_choice="${wm_choice:-1}"
+
+case "$wm_choice" in
+  1)
+    WINDOW_MANAGER_CHOICE="Niri"
+    WM_PACKAGES=("${NIRI[@]}")
+    ;;
+  2)
+    WINDOW_MANAGER_CHOICE="Hyprland"
+    WM_PACKAGES=("${HYPRLAND[@]}")
+    ;;
+  *)
+    printf "\n-- Invalid choice. Defaulting to Niri --\n"
+    WINDOW_MANAGER_CHOICE="Niri"
+    WM_PACKAGES=("${NIRI[@]}")
+    ;;
+esac
+
+printf "\n-- Selected: %s --\n\n" "$WINDOW_MANAGER_CHOICE"
+
+# ============================================================================
+# PACKAGE INSTALLATION
+# ============================================================================
+
+# install dependencies
 install_packages "${DEPENDENCIES[@]}"
-# install all the packages related to the window manager 'Hyprland'
-install_packages "${WINDOW_MANAGER[@]}"
-# install all the packages related to "Desktop" applications / programs
-install_packages "${DESKTOP[@]}"
-# install all the packages related to coding and development
-install_packages "${DEVELOPMENT[@]}"
-# install all the packages related to coding and development
-install_packages "${LANGS[@]}"
-# install all the packages related to fonts used
+
+# install wayland common packages
+install_packages "${WAYLAND_COMMON[@]}"
+
+# install selected window manager
+install_packages "${WM_PACKAGES[@]}"
+
+# install appearance packages
+install_packages "${APPEARANCE[@]}"
+
+# install desktop applications
+install_packages "${APPLICATIONS[@]}"
+
+# install cli tools
+install_packages "${CLI_TOOLS[@]}"
+
+# install shell
+install_packages "${SHELL[@]}"
+
+# install fonts
 install_packages "${FONTS[@]}"
 
-printf "== Setup Rustup and Cargo ==\n\n"
+# install programming languages
+install_packages "${LANGS[@]}"
 
-# initialise rust - cargo
-rustup default stable
+# setup rust
+printf "\n== Setting Up Rust ==\n\n"
+run_command "Setting Rustup default to stable" rustup default stable
 
-# install all the utility packages
-install_packages "${SYSTEM_UTILS[@]}"
+# ============================================================================
+# LAPTOP PACKAGES
+# ============================================================================
 
-# call the function to check if user is on laptop and if need be install laptop packages
-laptop_packages "${LAPTOP[@]}"
+# install old laptop specific packages
+install_laptop_packages "${OLD_LAPTOP[@]}"
 
-# enable all the required services
+# ============================================================================
+# SERVICES
+# ============================================================================
+
+# enable required services
 enable_services "${SERVICES[@]}"
 
-# import / source the proper file to be able to move configuration files and folders
+# ============================================================================
+# DOTFILES SETUP
+# ============================================================================
+
+# source dotfiles script
 if ! source dotfiles.sh; then
-  # display the error message if the `source` command returned '1'
-  printf "\nConfiguration SH was Skipped or Failed, continuing with the rest...\n"
+  printf "\n-- WARNING: Dotfiles setup failed or was skipped --\n" >&2
 fi
 
-# call the function to "manually" install OMZ
-oh_my_zsh_manual
+# ============================================================================
+# ADDITIONAL SETUP
+# ============================================================================
 
-# call the function to install TPM
+# install tmux plugin manager
 tmux_plugin_manager
 
-# call the function to ask if the user wants to install and configure kanata key remapper
+# configure kanata
 kanata_configuration
 
-# import / source the proper file to configure git and setup SSH key
-if ! git_configuration; then
-  # display the error message if the `source` command returned '1'
-  printf "\nGit Configuration was Skipped or Failed, continuing with the rest...\n"
-fi
+# configure git and ssh
+git_configuration_setup
 
-# call the function to check if the user wants to reboot the system
+# ============================================================================
+# FINISH
+# ============================================================================
+
+# change shell to zsh and reboot
 reboot_computer
