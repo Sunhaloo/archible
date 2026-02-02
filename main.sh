@@ -126,7 +126,12 @@ fi
 # ============================================================================
 
 # install old laptop specific packages
-install_laptop_packages "${OLD_LAPTOP[@]}"
+read -r -p "Are you on an old laptop? [y/N]: " old_laptop
+if [[ "${old_laptop,,}" =~ ^y(es)?$ ]]; then
+  install_laptop_packages "${OLD_LAPTOP[@]}"
+else
+  printf "\n-- Skipping old laptop packages --\n"
+fi
 
 # ============================================================================
 # SERVICES
