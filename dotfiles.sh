@@ -100,6 +100,17 @@ if [[ "$clone_status" -eq 0 ]]; then
 
   printf "\n-- Configuration Folders and Files Successfully Moved --\n\n"
 
+  # copy zsh configuration file to home directory
+  if [[ -f "$REPO_DIR/$DIR_NAME/zsh/.zshrc" ]]; then
+    if cp "$REPO_DIR/$DIR_NAME/zsh/.zshrc" "$HOME/.zshrc"; then
+      printf "\n-- Copied: .zshrc to home directory --\n\n"
+    else
+      printf "\n-- Failed to copy: .zshrc --\n" >&2
+    fi
+  else
+    printf "\n-- Missing: .zshrc --\n" >&2
+  fi
+
 else
   printf "\n== WARNING: Clone Failed ==\n" >&2
 
