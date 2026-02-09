@@ -79,6 +79,7 @@ if [[ "$clone_status" -eq 0 ]]; then
     "kitty"
     "niri"
     "nvim"
+    "pypr"
     "rofi"
     "starship"
     "tmux"

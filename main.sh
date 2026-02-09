@@ -43,27 +43,27 @@ read -r -p "Enter your choice [1/2/3/4]: " wm_choice
 wm_choice="${wm_choice:-1}"
 
 case "$wm_choice" in
-  1)
-    WINDOW_MANAGER_CHOICE="Hyprland"
-    WM_PACKAGES=("${HYPRLAND[@]}")
-    ;;
-  2)
-    WINDOW_MANAGER_CHOICE="Niri"
-    WM_PACKAGES=("${NIRI[@]}")
-    ;;
-  3)
-    WINDOW_MANAGER_CHOICE="Both Niri and Hyprland"
-    WM_PACKAGES=("${NIRI[@]}" "${HYPRLAND[@]}")
-    ;;
-  4)
-    WINDOW_MANAGER_CHOICE="None"
-    WM_PACKAGES=()
-    ;;
-  *)
-    printf "\n-- Invalid choice. Defaulting to Hyprland --\n"
-    WINDOW_MANAGER_CHOICE="Hyprland"
-    WM_PACKAGES=("${HYPRLAND[@]}")
-    ;;
+1)
+  WINDOW_MANAGER_CHOICE="Hyprland"
+  WM_PACKAGES=("${HYPRLAND[@]}")
+  ;;
+2)
+  WINDOW_MANAGER_CHOICE="Niri"
+  WM_PACKAGES=("${NIRI[@]}")
+  ;;
+3)
+  WINDOW_MANAGER_CHOICE="Both Niri and Hyprland"
+  WM_PACKAGES=("${NIRI[@]}" "${HYPRLAND[@]}")
+  ;;
+4)
+  WINDOW_MANAGER_CHOICE="None"
+  WM_PACKAGES=()
+  ;;
+*)
+  printf "\n-- Invalid choice. Defaulting to Hyprland --\n"
+  WINDOW_MANAGER_CHOICE="Hyprland"
+  WM_PACKAGES=("${HYPRLAND[@]}")
+  ;;
 esac
 
 printf "\n-- Selected: %s --\n\n" "$WINDOW_MANAGER_CHOICE"
