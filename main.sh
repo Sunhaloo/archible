@@ -32,37 +32,23 @@ update_system
 # ============================================================================
 
 printf "\n== Window Manager Selection ==\n\n"
-printf "Which window manager would you like to install?\n"
-printf "  [1] Hyprland (default)\n"
-printf "  [2] Niri\n"
-printf "  [3] Both Niri and Hyprland\n"
-printf "  [4] None (skip window manager)\n\n"
-read -r -p "Enter your choice [1/2/3/4]: " wm_choice
+read -r -p "Install Hyprland? [Y/n]: " wm_choice
 
-# default to hyprland if empty
-wm_choice="${wm_choice:-1}"
-
-case "$wm_choice" in
-1)
-  WINDOW_MANAGER_CHOICE="Hyprland"
-  WM_PACKAGES=("${HYPRLAND[@]}")
-  ;;
-2)
-  WINDOW_MANAGER_CHOICE="Niri"
-  WM_PACKAGES=("${NIRI[@]}")
-  ;;
-3)
-  WINDOW_MANAGER_CHOICE="Both Niri and Hyprland"
-  WM_PACKAGES=("${NIRI[@]}" "${HYPRLAND[@]}")
-  ;;
-4)
+case "${wm_choice,,}" in
+n | no)
   WINDOW_MANAGER_CHOICE="None"
   WM_PACKAGES=()
+  printf "\n-- Skipping Hyprland — no window manager will be installed --\n"
+  ;;
+y | yes | "")
+  WINDOW_MANAGER_CHOICE="Hyprland"
+  WM_PACKAGES=("${HYPRLAND_WM[@]}")
+  printf "\n-- Installing Hyprland --\n"
   ;;
 *)
-  printf "\n-- Invalid choice. Defaulting to Hyprland --\n"
+  printf "\n-- Invalid input. Defaulting to Hyprland --\n"
   WINDOW_MANAGER_CHOICE="Hyprland"
-  WM_PACKAGES=("${HYPRLAND[@]}")
+  WM_PACKAGES=("${HYPRLAND_WM[@]}")
   ;;
 esac
 
@@ -72,17 +58,20 @@ printf "\n-- Selected: %s --\n\n" "$WINDOW_MANAGER_CHOICE"
 # PACKAGE INSTALLATION
 # ============================================================================
 
-# install dependencies
-install_packages "${DEPENDENCIES[@]}"
+# install general dependencies
+install_packages "${GENERAL_DEPENDENCIES[@]}"
 
-# install wayland common packages
-install_packages "${WAYLAND_COMMON[@]}"
+# install file management dependencies
+install_packages "${FILE_MANAGEMENT_DEPENDENCIES[@]}"
+
+# install security packages
+install_packages "${SECURITY[@]}"
 
 # install selected window manager
 if [[ ${#WM_PACKAGES[@]} -gt 0 ]]; then
   install_packages "${WM_PACKAGES[@]}"
 else
-  printf "\n-- Skipping window manager installation --\n"
+  printf "\n-- Skipping Window Manager Packages Installation --\n"
 fi
 
 # install appearance packages
@@ -101,36 +90,38 @@ install_packages "${SHELL[@]}"
 install_packages "${FONTS[@]}"
 
 # install programming languages
-install_packages "${LANGS[@]}"
+install_packages "${PROGRAMMING[@]}"
 
 # setup rust
 printf "\n== Setting Up Rust ==\n\n"
 run_command "Setting Rustup default to stable" rustup default stable
 
 # ============================================================================
-# EXTRAS
+# MAIN LAPTOP PACKAGES
 # ============================================================================
 
-# install extra packages
-if [[ ${#EXTRAS[@]} -gt 0 ]]; then
-  read -r -p "Would you like to install extra packages? [y/N]: " install_extras
-  if [[ "${install_extras,,}" =~ ^y(es)?$ ]]; then
-    install_packages "${EXTRAS[@]}"
+# install main laptop packages
+if [[ ${#MAIN_LAPTOP[@]} -gt 0 ]]; then
+  read -r -p "Would you like to install main laptop packages? [y/N]: " install_main_laptop
+  if [[ "${install_main_laptop,,}" =~ ^y(es)?$ ]]; then
+    install_packages "${MAIN_LAPTOP[@]}"
   else
-    printf "\n-- Skipping extra packages --\n"
+    printf "\n-- Skipping main laptop packages --\n"
   fi
 fi
 
 # ============================================================================
-# LAPTOP PACKAGES
+# SECONDARY LAPTOP PACKAGES
 # ============================================================================
 
-# install old laptop specific packages
-read -r -p "Are you on an old laptop? [y/N]: " old_laptop
-if [[ "${old_laptop,,}" =~ ^y(es)?$ ]]; then
-  install_laptop_packages "${OLD_LAPTOP[@]}"
-else
-  printf "\n-- Skipping old laptop packages --\n"
+# install secondary laptop packages
+if [[ ${#SECONDARY_LAPTOP[@]} -gt 0 ]]; then
+  read -r -p "Would you like to install secondary laptop packages? [y/N]: " install_secondary_laptop
+  if [[ "${install_secondary_laptop,,}" =~ ^y(es)?$ ]]; then
+    install_packages "${SECONDARY_LAPTOP[@]}"
+  else
+    printf "\n-- Skipping secondary laptop packages --\n"
+  fi
 fi
 
 # ============================================================================

@@ -107,32 +107,6 @@ install_packages() {
   run_command "Installing ${#not_on_sys[@]} package(s)" yay -S --noconfirm "${not_on_sys[@]}"
 }
 
-# install laptop specific packages
-install_laptop_packages() {
-  printf "\n== ( Old ) Laptop Specific Packages ==\n"
-
-  read -r -p "Are you on a OLD laptop? [y/N]: " laptop_user
-
-  case "${laptop_user,,}" in
-  y | yes)
-    printf "\n-- Installing Laptop Packages --\n"
-    local laptop_packages=("$@")
-
-    if ! install_packages "${laptop_packages[@]}"; then
-      printf "\n-- Failed to install laptop packages --\n" >&2
-      return 1
-    fi
-    ;;
-  n | no | "")
-    printf "\n-- Skipping Laptop Packages --\n"
-    ;;
-  *)
-    printf "\n-- Invalid input. Skipping laptop packages --\n" >&2
-    return 1
-    ;;
-  esac
-}
-
 # enable all the required services
 enable_services() {
   local services=("$@")

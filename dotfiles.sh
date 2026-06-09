@@ -73,21 +73,23 @@ if [[ "$clone_status" -eq 0 ]]; then
 
   # define config folders to copy from dotfiles
   config_folders=(
-    "dunst"
     "hypr"
     "kanata"
     "kitty"
-    "niri"
+    "noctalia"
     "nvim"
-    "pypr"
-    "rofi"
     "starship"
     "tmux"
-    "waybar"
   )
 
   # copy each config folder
   for folder in "${config_folders[@]}"; do
+    # copy the kanata configuration folder if kanata is installed
+    if [[ "$folder" == "kanata" ]] && ! command -v kanata &>/dev/null; then
+      printf "-- Skipping: %s (not installed) --\n" "$folder"
+      continue
+    fi
+
     if [[ -d "$HOME/GitHub/dotfiles/$folder" ]]; then
       if cp -r "$HOME/GitHub/dotfiles/$folder" "$HOME/.config/"; then
         printf "-- Copied: %s --\n" "$folder"
