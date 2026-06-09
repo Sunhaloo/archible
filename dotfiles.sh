@@ -92,12 +92,12 @@ if [[ "$clone_status" -eq 0 ]]; then
 
     if [[ -d "$HOME/GitHub/dotfiles/$folder" ]]; then
       if cp -r "$HOME/GitHub/dotfiles/$folder" "$HOME/.config/"; then
-        printf "-- Copied: %s --\n" "$folder"
+        printf "\tCopied: %s\n" "$folder"
       else
-        printf "-- Failed to copy: %s --\n" "$folder" >&2
+        printf "\tFailed to copy: %s\n" "$folder" >&2
       fi
     else
-      printf "-- Missing: %s --\n" "$folder" >&2
+      printf "\tMissing: %s\n" "$folder" >&2
     fi
   done
 
