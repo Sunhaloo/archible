@@ -75,7 +75,11 @@ else
 fi
 
 # install appearance packages
-install_packages "${APPEARANCE[@]}"
+if [[ ${#WM_PACKAGES[@]} -gt 0 ]]; then
+  install_packages "${APPEARANCE[@]}"
+else
+  printf "\n-- Skipping 'Appearance' Packages Installation --\n"
+fi
 
 # install desktop applications
 install_packages "${APPLICATIONS[@]}"
@@ -87,7 +91,11 @@ install_packages "${CLI_TOOLS[@]}"
 install_packages "${SHELL[@]}"
 
 # install fonts
-install_packages "${FONTS[@]}"
+if [[ ${#WM_PACKAGES[@]} -gt 0 ]]; then
+  install_packages "${FONTS[@]}"
+else
+  printf "\n-- Skipping 'Fonts' Packages Installation --\n"
+fi
 
 # install programming languages
 install_packages "${PROGRAMMING[@]}"
