@@ -6,21 +6,22 @@ A simple personal install script for my Arch Linux PCs and laptops, created for 
 
 ## Back Story
 
-When I switched to Arch from Pop!_OS, I heard a lot of people saying "\_Yeah, Arch is really unstable!_"
+When I switched to Arch from Pop!_OS, I heard a lot of people saying "_Yeah, Arch is really unstable!_"
 
-At that time, with my limited knowledge (I was still trying to figure things out), I asked [ChatGPT](https://chat.openai.com) to basically write an install script.
+At that time, with my limited knowledge ( as I was still trying to figure things out ), I asked [ChatGPT](https://chat.openai.com) to basically write an install script.
 
 > It was the worst thing ever!
 
-It was not optimized... What I'm trying to say is that I **lacked** the fundamental knowledge of Bash. Hence, I didn't even think of or consider using arrays to store packages, for example.
-ChatGPT simply wrote a function that could take $x$ number of arguments (i.e., the package names) and then install them.
+It was **not** optimised at all. What I'm trying to say, it's that I **lacked** the fundamental knowledge of Bash. Hence, I didn't even think of using arrays to store packages or improve the efficiency of it.
 
-The install script was a single file that was over 920 lines of code.
+> I just needed something quick and fast!
+
+ChatGPT simply wrote a function that could take $x$ number of arguments ( i.e., the package names ) and then install them. Well the result of it was a single-file install script that was over 920 lines of code.
 
 > [!TIP]
 > The "_revelation_" came when this [video](https://www.youtube.com/watch?v=62mygqukbYk) by Typecraft appeared in my YouTube feed.
 >
-> This is when I realized that things shouldn't have been that complicated, and I had the eureka moment of "_I need to use arrays!_"
+> This is when I realized that things shouldn't have been this _complicated_, and I had the eureka moment of "_I need to use arrays_!"
 >
 > Therefore, I actually went over Bash's basics again and here I am with my version of his install script!
 
@@ -30,7 +31,7 @@ The install script was a single file that was over 920 lines of code.
 
 - Vanilla Arch or any Arch-based distribution
   - If using an Arch-based distribution like [EndeavourOS](https://endeavouros.com/)
-    - Select the '_No Desktop Environment_' option
+    - Select the '_No Desktop Environment_' option **without** any of the options
 - Git
 - Another computer/laptop (optional)
 
@@ -43,10 +44,10 @@ The install script was a single file that was over 920 lines of code.
 git clone https://github.com/Sunhaloo/archible.git
 ```
 
-2. Run the `main.sh` script found inside the `archible` directory:
+1. Run the `main.sh` script found inside the `archible` directory:
 
 ```bash
-# change directory to cloned repository and run personal install script
+# change directory to cloned repository and run the install script
 cd archible && ./main.sh
 ```
 
@@ -68,3 +69,29 @@ cd archible && ./main.sh
 > This way, you can agree to the Git/GitHub configuration prompt (hopefully the other device has a desktop environment)!
 >
 > You'll just need to open up [Github](https://github.com/) and simply paste that SSH key there. When you reboot, you should be ready to use "_my_" computer!
+
+## Change DNS Server Commands
+
+- Use the following commands to change your DNS server:
+
+```bash
+# list out the available WiFi connections
+nmcli connection show
+
+# change the appropriate WiFi's DNS server
+nmcli connection modify "WiFiName" ipv4.dns "<insert-dns-server>"
+
+# modify the `ignore-auto-dns` setting for IPV4
+nmcli connection modify "WiFiName" ipv4.ignore-auto-dns yes
+
+# restart the connection
+nmcli connection down "WiFiName" && nmcli connection up "WiFiName"
+
+# check your updated IPV4 DNS server
+nmcli device show | grep "IP4.DNS"
+```
+
+> Replace `WiFiName` with **your** WiFi's SSID!
+
+> [!NOTE]
+> If you get a permission error; just add `sudo` at the _front_ of the above commands!

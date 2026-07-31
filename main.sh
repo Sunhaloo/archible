@@ -58,14 +58,23 @@ printf "\n-- Selected: %s --\n\n" "$WINDOW_MANAGER_CHOICE"
 # PACKAGE INSTALLATION
 # ============================================================================
 
-# install general dependencies
-install_packages "${GENERAL_DEPENDENCIES[@]}"
+# install network packages
+install_packages "${NETWORK[@]}"
 
-# install file management dependencies
-install_packages "${FILE_MANAGEMENT_DEPENDENCIES[@]}"
+# install 'package management' packages
+install_packages "${PACKAGE_MANAGEMENT[@]}"
+
+# install general packages
+install_packages "${GENERAL[@]}"
+
+# install file management packages
+install_packages "${FILE_MANAGEMENT[@]}"
 
 # install security packages
 install_packages "${SECURITY[@]}"
+
+# install audio packages
+install_packages "${AUDIO[@]}"
 
 # install selected window manager
 if [[ ${#WM_PACKAGES[@]} -gt 0 ]]; then
